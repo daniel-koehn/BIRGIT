@@ -24,9 +24,13 @@ We also use Segymat by Thomas Meier Hansen to read SEGY/SU data and code snippet
 [SeismicLab](http://seismic-lab.physics.ualberta.ca/index.html)
 
 BIRGIT is developed by 
+
 Daniel Koehn (Christian-Albrechts-University Kiel, Germany)
 
 with contributions and bug fixes from 
+
 Eva Dokter (University of Edinburgh, United Kingdom)
+
 Denise De Nil (Christian-Albrechts-University Kiel, Germany)
+
 (add future authors here)
