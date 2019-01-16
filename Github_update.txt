@@ -1,0 +1,29 @@
+Git cloning ...
+---------------
+
+... the master branch
+
+git clone https://github.com/daniel-koehn/BIRGIT.git
+
+... only the latest master branch update 
+
+git clone --depth=1 https://github.com/daniel-koehn/BIRGIT.git  
+
+... a developing branch
+
+git clone -b branch_name https://github.com/daniel-koehn/BIRGIT.git
+
+
+Update of Github BIRGIT repository
+----------------------------------
+
+1. Move to BIRGIT directory
+2. git add -A
+3. git commit -m "Comment on the latest update"
+
+For a specific branch ...
+4. git push origin branch_name
+
+For master branch ...
+4. git push origin master
+

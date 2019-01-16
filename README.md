@@ -1,5 +1,5 @@
 # BIRGIT
-Pre- and Postprocessing tools for full waveform inversion (FWI) field data applications written in Matlab, Python and shell scripts. Since 2013 we developed a collection of codes for field data preprocessing for SH-FWI. These consist of 
+Pre- and Postprocessing tools for full waveform inversion (FWI) field data applications written in Matlab, Python and shell scripts. Since 2013 we developed a collection of codes for field data preprocessing for SH-FWI using the [DENISE FWI code](https://github.com/daniel-koehn/DENISE-Black-Edition). These consist of 
 
 - Seismic Unix shell scripts to distribute seismic data from a single SU file to multiple SU files for each shot
 
@@ -23,4 +23,10 @@ We also use Segymat by Thomas Meier Hansen to read SEGY/SU data and code snippet
 
 [SeismicLab](http://seismic-lab.physics.ualberta.ca/index.html)
 
-Daniel Koehn and Denise De Nil
+BIRGIT is developed by 
+Daniel Koehn (Christian-Albrechts-University Kiel, Germany)
+
+with contributions and bug fixes from 
+Eva Dokter (University of Edinburgh, United Kingdom)
+Denise De Nil (Christian-Albrechts-University Kiel, Germany)
+(add future authors here)
