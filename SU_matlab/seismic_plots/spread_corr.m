@@ -47,7 +47,7 @@ function [ D_data ] = spread_corr(ntr, nt, DT, fmax, w0, offset, t, D_data, D_mo
             % apply phase correction in frequency domain
             trace = spread_corr_phase(min(t),tracei,DT,fmax,w0,nt);                    
                  
-            D_data(:,i) = tracei(:) .* sqrt(2.0 .* abs(offset(i)) .* vph);
+            D_data(:,i) = tracei(:) .* sqrt(2.0 .* abs(offset(i)) .* vph) ./ sqrt(t);
 
         end
         
