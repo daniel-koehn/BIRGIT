@@ -84,7 +84,7 @@ ENVELOPE = 0;
 WIG = 12;
 
 % phase velocities used for plotting phase velocity-frequency spectra
-cphase = 20.0:0.5:500.0;
+cphase = 20.0:0.5:200.0;
 
 % parameters for phase error calculations
 FWI_phase_error=0;
@@ -109,13 +109,13 @@ STAT_SRC = 0;
 % clipping values
 dtr = 1; % plot every dtr-th trace
 dresamp_nt = 2;  % resample wiggle plot to reduce image size
-clip=1e0;
+clip=2e0;
 FSize=20; % font size
 Tmin=0.1;
 Tmax=-0.8;
 
 % define image plot clipping values
-caxis_value2 = 2e-3; % NORM=2
+caxis_value2 = 2e-2; % NORM=2
 % caxis_value2 = 1e-6; % NORM=1
 caxis_value1 = -caxis_value2;
 
@@ -133,8 +133,14 @@ DELAY=1;
 delay=0.1;         % time delay for real data
 gamma_delay = 1e0;   % time delay damping
 
+% ZEROPAD data
+% ZEROPAD = 1 (zero-padding field data up to time Tpad)
+% ZEROPAD = 0 (no zero-padding field data)
+ZEROPAD = 1;
+Tpad = 0.8;
+
 % name of output SU data file
-out_su_file=['output_data/DENISE_kleinneudorf_SH'];
+out_su_file=['output_data/DENISE_dannewerk'];
 SCALCO = -1000;
 
 % Normalization of field data
@@ -168,8 +174,8 @@ twinp_const=1.6;  % if TWIN==3 use constant twin+ at constant time
 
 % TDAMP = 1 (zero-time damping = on)
 % TDAMP = 0 (zero-time damping = off)
-TDAMP = 0;
-sdamp = 0.5;
+TDAMP = 1;
+sdamp = 8;
 
 % Parameters for STA/LTA Picker (TWIN=5)
 BE=[0 1.0];
@@ -224,10 +230,10 @@ end
 
 % EST_SOURCE = 1 (estimate source wavelet in the frequency domain)
 % EST_SOURCE = 2 (estimate source wavelet in the time domain)
-EST_SOURCE = 0;
+EST_SOURCE = 1;
 eps_w = 0.01;     % damping factor in Marquardt-Levenberg regularization for source wavelet estimation
 eps_w_td = 100.0; 
-max_offset_source = 20.0; % maximum offset of traces used for STF-inversion [m]
+max_offset_source = 10.0; % maximum offset of traces used for STF-inversion [m]
 out_wavelet = 'wavelet/wavelet_s140';
 
 % normalize source time function to 
@@ -246,24 +252,24 @@ adp_source = 1e3;  % damping parameter to smooth wavelet at the end
 COMP_WAVELET = 0;
 
 % Mute noisy traces during the inversion
-TRACEMUTE=0;
-trace_index=[1 2];
+TRACEMUTE=1;
+trace_index=[1 27 54];
 
 % create Near-offset section
 NOS=0;
 
 % name of input SU data file
-in_data=['raw_data/SH_shots_s140/SH_s140'];
+in_data=['raw_data/dannewerk/shot'];
 
 % name of input SU model file
-in_model=['FD_seis/profile_s140/fwi_11_01_2019/DENISE_kleinneudorf'];
+in_model=['FD_seis/init_mod/DENISE_dannewerk'];
 
 minshot = 1;          % minimum shot no. to display
 maxshot = 1;          % maximum shot no. to display
-maxshot_true = 50;    % true maximum number of shots
+maxshot_true = 30;    % true maximum number of shots
 
-sdatname = 'source/source_kleinneudorf_s140.dat';    % specify name of source file 
-rdatname = 'receiver/receiver_kleinneudorf_s140.dat';  % specify name of receiver file 
+sdatname = 'source/source_dannewerk.dat';    % specify name of source file 
+rdatname = 'receiver/receiver_dannewerk.dat';  % specify name of receiver file 
 
 if(WIG==6)
     
@@ -274,7 +280,7 @@ if(WIG==6)
     mu=0.03;           % regularization parameter
     sol='adj'; 
     pfmin = 1.0;
-    pfmax = 200.0;
+    pfmax = 80.0;
     tau_max=0.12;
 
     % define p-values to compute
@@ -287,7 +293,7 @@ end
 % open FD spike wavelet
 if(EST_SOURCE>0)
 
-    in_spike=['FD_seis/profile_s140/Kleinneudorf_source_signal.su']; % spike wavelet    
+    in_spike=['FD_seis/Dannewerk_source_signal.su']; % spike wavelet    
 
     % load spike data
     [D_spike,Htr_spike,H_spike] = ReadSu(in_spike,'endian','l');
@@ -297,7 +303,16 @@ end
 Fig = figure;
 figure(Fig)
 
+% load shot positions
+shot_acq = load('raw_data/Schuss.dat');
+
+xsrc = shot_acq(:,1); 
+zsrc = shot_acq(:,2);
+
+clear shot_acq;
+
 % loop over shots
+lshot = 302;
 for k=minshot:maxshot
     
   % if((k~=40)&&(k~=46)&&(k~=49))  % shots excluded from FWI
@@ -307,29 +322,19 @@ for k=minshot:maxshot
     end
     
     % load model data
-    infile_model = [in_model,'_y.su.shot',int2str(k),'.it1'];
-    [D_mod,Htr,H_mod] = ReadSu(infile_model,'endian','l');
-    
-    % load model data
-%     infile_model = [in_model,'_y.su.shot1.it1'];
-%     [D_mod,Htr,H_mod] = ReadSu(infile_model,'endian','l');
+    if(WIG~=0 || WIG~=4)
+        infile_model = [in_model,'_y.su.shot',int2str(k),'.it1'];
+        [D_mod,Htr,H_mod] = ReadSu(infile_model,'endian','l');    
+    end
     
     % load field data
-    infile_data = [in_data,'_shot_',int2str(k),'.su'];
+    infile_data = [in_data,int2str(lshot),'.su'];
     [D_data,Htr,H_data] = ReadSu(infile_data,'endian','b');
-%       [D_mod,Htr,H_mod] = ReadSu(infile_data,'endian','b');
     
-    % reverse phase of D_data
-    % D_data = -D_data;
+    if(WIG==0 || WIG==4)
+        [D_mod,Htr,H_mod] = ReadSu(infile_data,'endian','b');
+    end
     
-%     tmp = D_mod(:,istart(k):iend(k));
-%     clear D_mod;
-%     D_mod = tmp;
-%     
-%     tmp = D_data(:,istart(k):iend(k));
-%     clear D_data;
-%     D_data = tmp;
-   
     DT=H_mod(1).dt.*1e-6;      % get sample interval from model SU-Header
     DT_dat=H_data(1).dt.*1e-6; % get sample interval from data SU-Header
 
@@ -343,28 +348,43 @@ for k=minshot:maxshot
     t1=t1.*DT_dat;
     t1=t1';
     
-    % calculate source coordinates
-    x0 = 2.25;
-    z0 = 89.74 + 6.11;
-    xprofil_shift = 0.0;   
-    
-    xsrc(k) = Htr(1).SourceX / 100.0 + x0;
-    zsrc(k) = -Htr(1).SourceSurfaceElevation / 100.0 + z0;
-    
-    for i=1:ntr_data
+    if(ZEROPAD==1)
         
-        xrec(i) = Htr(i).GroupX / 100.0 + x0;
-        zrec(i) = -Htr(i).ReceiverGroupElevation / 100.0 + z0;           
+        % calculate number of padded samples
+        npad = (Tpad - max(t1)) / DT_dat;
+        zero_pad = zeros(npad,ntr_data);
+        
+        % total number of timesamples in zero-padded dataset
+        nt_data = nt_data + npad;
+        
+        clear t1;
+        t1=1:nt_data;
+        t1=t1.*DT_dat;
+        t1=t1';
+        
+        % zero-pad field data
+        D_data = [D_data; zero_pad];
         
     end
-       
     
-    offset = xsrc(k) - xrec;
+    % shift source coordinates in vertical direction
+    zsrc(k) = -zsrc(k) + 25.7470 + 1.0;
+    xprofil_shift = 0.0;
+    
+    % read receiver coordinates
+    rec_acq = load('raw_data/Geophone.dat');
+    xrec = rec_acq(:,1);
+    zrec = rec_acq(:,2);
+    
+    % shift receiver coordinates in vertical direction
+    zrec = -zrec + 25.7470 + 1.0;
+    
+    offset = xrec - xsrc(k);
       
     if(WRITE_ACQ==1)
         
-        geoph1=[xrec' zrec'];
-        dlmwrite(['receiver/receiver_kleinneudorf_s140_shot_',int2str(k),'.dat'],geoph1,'delimiter','\t','precision','%.3f');
+        geoph1=[xrec zrec];
+        dlmwrite(['receiver/receiver_dannewerk_shot_',int2str(k),'.dat'],geoph1,'delimiter','\t','precision','%.3f');
         
     end
     
@@ -484,7 +504,7 @@ for k=minshot:maxshot
     if(TDAMP>0)
 
         for i=1:ntr  
-            D_data(:,i) = D_data(:,i).*exp(-sdamp.*t(:));
+            D_data(:,i) = D_data(:,i).*exp(-sdamp.*abs(t(:) - delay));
             D_mod(:,i) = D_mod(:,i).*exp(-sdamp.*t(:));
         end
 
@@ -516,7 +536,7 @@ for k=minshot:maxshot
     
     if(TRACEMUTE==1)
     
-        trace_index_tmp = trace_index;
+        trace_index_tmp = [trace_index 2*k-1];
         
         % mute noisy traces
 %         if(k==12)
@@ -572,14 +592,11 @@ for k=minshot:maxshot
         color_trace(1:ntr) = 'k';
         
          for i=1:nkill
-%             D_data(:,trace_index_tmp(i))=0.0;
-%             D_mod(:,trace_index_tmp(i))=0.0;
-             color_trace(trace_index_tmp(i)) = 'r';
-
+             D_data(:,trace_index_tmp(i))=0.0;
+             D_mod(:,trace_index_tmp(i))=0.0;
+%             color_trace(trace_index_tmp(i)) = 'b';
          end
 
-
-    
     end
     
     % mute far-offset 
@@ -1078,9 +1095,9 @@ for k=minshot:maxshot
             AVO_mod(i) = sqrt(sum(D_mod(:,i).^2)./nt); 
         end
         
-        plot(offset(1:ntr-1),AVO_data(1:ntr-1),'r-o','Linewidth',4.0,'MarkerFaceColor','r');
+        semilogy(offset(1:ntr-1),AVO_data(1:ntr-1),'r-o','Linewidth',4.0,'MarkerFaceColor','r');
         hold on;
-        plot(offset(1:ntr-1),AVO_mod(1:ntr-1),'b-o','Linewidth',4.0,'MarkerFaceColor','b');
+        semilogy(offset(1:ntr-1),AVO_mod(1:ntr-1),'b-o','Linewidth',4.0,'MarkerFaceColor','b');
         
         %set(gca,'DataAspectRatio',[1 250 1]);
         set(get(gca,'title'),'FontSize',FSize);
@@ -1127,21 +1144,19 @@ for k=minshot:maxshot
          for i=1:dtr:ntr 
             hold on;
             
-            if(TRACEMUTE==0)
                plot(xrec(i)+(D_data((1:dresamp_nt:nt),i)./(clip.*max(abs(D_data((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),'k-','Linewidth',3.0);                
-            end
-             
-            if(TRACEMUTE==1)
-               plot(xrec(i)+(D_data((1:dresamp_nt:nt),i)./(clip.*max(abs(D_data((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),color_trace(i),'Linewidth',3.0);
-               %plot(offset(i)+(D_data((1:dresamp_nt:nt),i)./(clip.*max(abs(D_data((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),color_trace(i),'Linewidth',3.0);
-            end
+
+%             if(TRACEMUTE==1)
+%                plot(xrec(i)+(D_data((1:dresamp_nt:nt),i)./(clip.*max(abs(D_data((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),color_trace(i),'Linewidth',3.0);
+%                %plot(offset(i)+(D_data((1:dresamp_nt:nt),i)./(clip.*max(abs(D_data((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),color_trace(i),'Linewidth',3.0);
+%             end
 
          end                 
          
          if(TWIN>0)
             hold on;
-            plot(offset,nnnorm0,'go','MarkerEdgeColor','g','MarkerFaceColor','g','MarkerSize',10);
-            plot(offset,nnnorm1,'bo','MarkerEdgeColor','b','MarkerFaceColor','b','MarkerSize',10);
+            plot(xrec,nnnorm0,'go','MarkerEdgeColor','g','MarkerFaceColor','g','MarkerSize',10);
+            plot(xrec,nnnorm1,'bo','MarkerEdgeColor','b','MarkerFaceColor','b','MarkerSize',10);
             hold off;
          end
          
@@ -1161,6 +1176,7 @@ for k=minshot:maxshot
            set(gca,'Box','on');
            set(gca,'Linewidth',1.0);
            axis ij
+           axis tight
            
            if(Tmax>0.0)
              axis([min(xrec) max(xrec) 0.0 Tmax]);
@@ -1356,7 +1372,7 @@ for k=minshot:maxshot
          %colormap(gray);
          colormap(seismic);
          if(FK_FILT==0)
-            [S,kn,f] = fk_spectra(D_data,DT,DX,Lham);
+            [S,kn,f] = fk_spectra(D_data,DT,xrec(2)-xrec(1),Lham);
          end
          
          imagesc(offset,t,real(S(1:nt,1:ntr)));
@@ -1467,7 +1483,7 @@ for k=minshot:maxshot
 
                 plot(xrec(i)+(D_data((1:dresamp_nt:nt),i)./(clip.*max(abs(D_data((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),'k-','Linewidth',3.0);
                 hold on;
-                plot(xrec(i)+(D_mod((1:dresamp_nt:nt),i)./(clip.*max(abs(D_mod((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),'r-','Linewidth',3.0);
+                plot(xrec(i)+(D_mod((1:dresamp_nt:nt),i)./(clip.*max(abs(D_mod((1:dresamp_nt:nt),i))))),t(1:dresamp_nt:nt),'r-','Linewidth',3.0);                
 
             end
         end
@@ -1520,7 +1536,7 @@ for k=minshot:maxshot
       set(Fig,'position',[0 0, screen_x screen_z])
       set(Fig,'PaperPositionMode','Auto')       
 
-      output=['pics/Kleinneudorf_data_shot_',int2str(k)];
+      output=['pics/Dannewerk_data_shot_',int2str(k)];
       %saveas(Fig,output,'psc2'); 
       saveas(Fig,output,'png');
     
@@ -1610,13 +1626,13 @@ for k=minshot:maxshot
     fclose('all');
     
   % end % end of if-statement excluding neglected shots
-    
+   lshot = lshot + 2;
 end
 
 if(WRITE_ACQ==1)
     
-    imfile=['source/source_kleinneudorf_s140.dat'];
-    time_shift = 9e-3;
+    imfile=['source/source_dannewerk.dat'];
+    time_shift = 0.0;
     ntr = length(xsrc);
     fid = fopen(imfile,'w');
     fprintf(fid,'%d \n',ntr);
